@@ -14,7 +14,7 @@ namespace TestGeneratorDll
         private AttributeSyntax TestMethodAttr = SyntaxFactory.Attribute(SyntaxFactory.ParseName("TestMethod"));
         private AttributeSyntax TestClassAttr = SyntaxFactory.Attribute(SyntaxFactory.ParseName("TestClass"));
 
-        public List<CompilationUnitSyntax> Generate(string sourceCode)
+        public List<TestFile> Generate(string sourceCode)
         {
             try
             {
@@ -25,13 +25,20 @@ namespace TestGeneratorDll
                 }
 
                 List<ClassDeclarationSyntax> classDeclarations = sourceRoot.DescendantNodes().OfType<ClassDeclarationSyntax>().ToList();
-                List<CompilationUnitSyntax> compilationUnits = new List<CompilationUnitSyntax>();
+                List<TestFile> files = new List<TestFile>();
                 foreach (var classDeclaration in classDeclarations)
                 {
-                    CompilationUnitSyntax result = GenerateCompilationUnit(sourceRoot,classDeclaration);
-                    compilationUnits.Add(result);
+                    if (!(classDeclaration.Parent is NamespaceDeclarationSyntax))
+                    {
+                        return null;
+                    }
+                    string namespaceOfSourceClass = (classDeclaration.Parent as NamespaceDeclarationSyntax).Name.ToString();
+                    string filename = classDeclaration.Identifier.ValueText;
+                    CompilationUnitSyntax result = GenerateCompilationUnit(sourceRoot,classDeclaration, namespaceOfSourceClass, filename);
+                    TestFile testFile = new TestFile(filename, namespaceOfSourceClass, result.ToFullString());
+                    files.Add(testFile);
                 }
-                return compilationUnits;
+                return files;
             }
             catch (Exception e)
             {
@@ -39,19 +46,13 @@ namespace TestGeneratorDll
             }
         }
 
-        public CompilationUnitSyntax GenerateCompilationUnit(CompilationUnitSyntax root,ClassDeclarationSyntax classDeclaration)
+        public CompilationUnitSyntax GenerateCompilationUnit(CompilationUnitSyntax root,ClassDeclarationSyntax classDeclaration, string namespaceOfSourceClass, string FileName)
         {
             var diagnostics = classDeclaration.GetDiagnostics().Where(n => n.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
             if (diagnostics.Count()>0)
             {
                 return null;
             }
-            var FileName = classDeclaration.Identifier.ValueText;
-            if (!(classDeclaration.Parent is NamespaceDeclarationSyntax))
-            {
-                return null;
-            }
-            string namespaceOfSourceClass = (classDeclaration.Parent as NamespaceDeclarationSyntax).Name.ToString();
             NamespaceDeclarationSyntax NamespaceDecl = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName(namespaceOfSourceClass+"Tests"));
             var methods = classDeclaration.DescendantNodes().OfType<MethodDeclarationSyntax>().Where(method => method.Modifiers.Any(SyntaxKind.PublicKeyword));
             var unit = SyntaxFactory.CompilationUnit()
