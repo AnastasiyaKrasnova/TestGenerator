@@ -30,48 +30,31 @@ namespace TestsGeneratorConsole
 
         public async Task GenerateAsync()
         {
-            /*var readFile = new TransformBlock<string, string>(async path =>
+           foreach (string file in _filesfortest)
             {
-                string fileContent;
-                using (StreamReader reader = File.OpenText(path))
+                if (!File.Exists(file))
                 {
-                    fileContent = await reader.ReadToEndAsync();
+                    throw new Exception(file+" doesnt exists");
                 }
-                return fileContent;
-
-            }, new ExecutionDataflowBlockOptions
+            }
+           if (!Directory.Exists(_testfolder))
             {
-                MaxDegreeOfParallelism = _maxFilesToRead
-            });
-
-            var getTest = new TransformBlock<string, List<TestFile>>(async source =>
-            {
-                await Task.Run(() => _generator.Generate(source));
-
-            }, new ExecutionDataflowBlockOptions
-            {
-                MaxDegreeOfParallelism = _maxThreads
-            });
-
-
-            var writeResult = new ActionBlock<List<TestFile>>(async files =>
-            {
-                foreach (var file in files)
-                {
-                    using (StreamWriter writer = File.CreateText(file.FileName))
-                    {
-                        await writer.WriteAsync(file.Code);
-                    }
-                }
-            }, new ExecutionDataflowBlockOptions
-            {
-                MaxDegreeOfParallelism = _maxFilesToWrite
-            });*/
-
-
+                throw new Exception(_testfolder + " test folder doesnt exists");
+            }
             var readFile = new TransformBlock<string, string>
                 (
-                    async path => await File.ReadAllTextAsync(path),
+                    async path =>
+                    {
+                        try {
+                            return await File.ReadAllTextAsync(path);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Files do not exists");
+                            return null;
+                        }
+                            
+                    },
                     new ExecutionDataflowBlockOptions
                     {
                         MaxDegreeOfParallelism = _maxFilesToRead
@@ -79,7 +62,10 @@ namespace TestsGeneratorConsole
                 );
             var getTest = new TransformManyBlock<string, TestFile>
                 (
-                    async sourceCode => await Task.Run(() => _generator.Generate(sourceCode)),
+                    async sourceCode =>
+                    {
+                        return await Task.Run(() => _generator.Generate(sourceCode));
+                    },
                     new ExecutionDataflowBlockOptions
                     {
                         MaxDegreeOfParallelism = _maxThreads

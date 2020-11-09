@@ -29,8 +29,15 @@ namespace TestsGeneratorConsole
             int FilesToWrite = int.Parse(Console.ReadLine());
             TestGenerator generator = new TestGenerator();
             Pipeline pipeline = new Pipeline(generator,FilesPath, Folder, Threads, FilesToRead, FilesToWrite);
-            pipeline.GenerateAsync().Wait();
-            Console.WriteLine("Completed.");
+            try
+            {
+                pipeline.GenerateAsync().Wait();
+                Console.WriteLine("Completed.");
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
     }
 }
