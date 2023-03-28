@@ -12,7 +12,7 @@ namespace TestsGeneratorConsole
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Enter list of file to generate tests for them separating them by spaces");
+            Console.WriteLine("Enter your list of file to generate tests for them separating them by spaces");
             List<string> Files = Console.ReadLine().Split(' ').ToList();
             List<string> FilesPath = new List<string>();
             foreach (string File in Files)
